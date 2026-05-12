@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electron Holding — Projektportfólió Dashboard 2026-05-12</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --red: #E24B4A; --red-bg: #FCEBEB; --red-t: #A32D2D;
+    --amber: #BA7517; --amber-bg: #FAEEDA; --amber-t: #633806;
+    --green: #639922; --green-bg: #EAF3DE; --green-t: #27500A;
+    --blue: #378ADD; --blue-bg: #E6F1FB; --blue-t: #0C447C;
+    --gray: #888780; --gray-bg: #F1EFE8; --gray-t: #444441;
+    --border: #e2e0d8; --border-strong: #c8c6be;
+    --bg: #fafaf8; --surface: #ffffff; --surface2: #f4f3ef;
+    --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
+    --radius: 8px; --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 24px 32px 48px; }
+
+  /* Header */
+  .hdr { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 16px; border-bottom: 2px solid var(--border-strong); margin-bottom: 20px; }
+  .hdr-logo { display: flex; align-items: center; gap: 10px; }
+  .logo-mark { width: 36px; height: 36px; background: var(--text); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .logo-mark svg { width: 22px; height: 22px; fill: #fff; }
+  .hdr-title { font-size: 20px; font-weight: 600; color: var(--text); }
+  .hdr-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .hdr-badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+  .badge-red { background: var(--red-bg); color: var(--red-t); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber-t); }
+  .badge-green { background: var(--green-bg); color: var(--green-t); }
+  .badge-blue { background: var(--blue-bg); color: var(--blue-t); }
+  .badge-gray { background: var(--gray-bg); color: var(--gray-t); }
+
+  /* Section header */
+  .sec { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+  .sec-icon { width: 14px; height: 14px; opacity: .6; }
+
+  /* KPI grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+  .kpi-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .kpi-value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+  .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 16px; }
+
+  /* Executive summary */
+  .exec-li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; line-height: 1.55; }
+  .exec-li:last-child { border-bottom: none; }
+  .edot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+
+  /* Project table */
+  .proj-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .proj-table th { text-align: left; font-size: 10px; font-weight: 700; color: var(--text2); padding: 0 6px 8px 0; border-bottom: 2px solid var(--border-strong); white-space: nowrap; text-transform: uppercase; letter-spacing: .04em; }
+  .proj-table td { padding: 7px 6px 7px 0; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .proj-table tr:last-child td { border-bottom: none; }
+  .proj-table tr.group-hdr td { background: var(--surface2); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 6px 8px; border-top: 2px solid var(--border-strong); border-bottom: 1px solid var(--border); }
+  .proj-table tr:hover td { background: var(--bg); }
+  .prio-chip { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; font-weight: 700; }
+  .p1c { background: var(--red-bg); color: var(--red-t); }
+  .p2c { background: var(--amber-bg); color: var(--amber-t); }
+  .p3c { background: var(--blue-bg); color: var(--blue-t); }
+  .p4c { background: var(--gray-bg); color: var(--gray-t); }
+  .p5c { background: var(--gray-bg); color: var(--gray-t); }
+  .p6c { background: var(--gray-bg); color: var(--gray-t); }
+  .proj-name { font-weight: 600; color: var(--text); font-size: 12px; }
+  .proj-note { font-size: 11px; color: var(--text2); }
+  .pb-wrap { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .pb { width: 52px; height: 5px; background: var(--border); border-radius: 3px; display: inline-block; }
+  .pf { height: 100%; border-radius: 3px; }
+
+  /* Two column layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+
+  /* Deadline rows */
+  .dl-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .dl-row:last-child { border-bottom: none; }
+  .dl-date { min-width: 80px; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+  .dl-text { flex: 1; color: var(--text); }
+
+  /* Gantt */
+  .gantt-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .gantt-row:last-child { border-bottom: none; }
+  .gantt-name { min-width: 130px; font-size: 11px; color: var(--text); flex-shrink: 0; }
+  .gantt-bar { flex: 1; height: 20px; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; font-size: 10px; font-weight: 600; }
+  .g-done { background: var(--green-bg); color: var(--green-t); }
+  .g-active { background: var(--blue-bg); color: var(--blue-t); }
+  .g-warn { background: var(--amber-bg); color: var(--amber-t); }
+  .g-crit { background: var(--red-bg); color: var(--red-t); }
+
+  /* Resource cards */
+  .res-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; }
+  .res-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+  .res-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .res-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text); padding: 2px 0; }
+  .res-mach { font-size: 10px; color: var(--text2); padding: 1px 0; display: flex; align-items: center; gap: 5px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dg { background: var(--green); } .dw { background: var(--amber); } .dr { background: var(--red); }
+  .warn-bar { background: var(--red-bg); border-radius: var(--radius); padding: 4px 8px; font-size: 10px; color: var(--red-t); margin-bottom: 7px; font-weight: 600; }
+  .warn-bar-a { background: var(--amber-bg); border-radius: var(--radius); padding: 4px 8px; font-size: 10px; color: var(--amber-t); margin-bottom: 7px; font-weight: 600; }
+
+  /* Action list */
+  .ac-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .ac-row:last-child { border-bottom: none; }
+  .ac-num { min-width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .ac-text { flex: 1; color: var(--text); font-size: 12px; line-height: 1.5; }
+  .ac-meta { display: flex; gap: 5px; align-items: center; white-space: nowrap; flex-shrink: 0; }
+
+  /* Chart */
+  .chart-wrap { display: flex; align-items: center; gap: 20px; }
+  .chart-canvas { position: relative; width: 160px; height: 160px; flex-shrink: 0; }
+  .chart-legend { display: flex; flex-direction: column; gap: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .legend-sq { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .legend-label { color: var(--text2); }
+  .legend-val { font-weight: 700; color: var(--text); margin-left: auto; padding-left: 12px; }
+
+  /* Footer */
+  .ftr { margin-top: 32px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--text3); }
+  .ftr-logo { font-weight: 700; color: var(--text2); }
+
+  /* Print */
+  @media print {
+    body { background: #fff; }
+    .page { padding: 16px; }
+    .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+    .two-col, .three-col { page-break-inside: avoid; }
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .three-col { grid-template-columns: repeat(2, 1fr); }
+    .proj-table th:nth-child(n+6), .proj-table td:nth-child(n+6) { display: none; }
+  }
+  @media (max-width: 600px) {
+    .page { padding: 12px 16px 32px; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .hdr { flex-direction: column; gap: 10px; align-items: flex-start; }
+    .three-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <div>
+        <div class="hdr-title">Electron Holding Zrt. — Projektportfólió Dashboard</div>
+        <div class="hdr-sub">2026. május 12. (kedd) &nbsp;·&nbsp; Státusz xlsx 2026-05-11 &nbsp;·&nbsp; Erőforrás kezelő AJD &nbsp;·&nbsp; Prioritás-alapú nézet</div>
+      </div>
+    </div>
+    <div class="hdr-badges">
+      <span class="badge badge-red">⛔ P1: 5 kritikus</span>
+      <span class="badge badge-amber">⚠ P2–3: 10 aktív</span>
+      <span class="badge badge-gray">P4–6: 18 projekt</span>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Összes aktív projekt</div><div class="kpi-value">33</div><div class="kpi-sub">kivitelezés → commissioning</div></div>
+    <div class="kpi"><div class="kpi-label">Átlag EPC készültség</div><div class="kpi-value">66%</div><div class="kpi-sub">összes projekt egyszerű átlaga</div></div>
+    <div class="kpi"><div class="kpi-label">Max. kötbérkockázat</div><div class="kpi-value" style="color:var(--red);">5M/nap</div><div class="kpi-sub">Sándorfalva — jún. 30. határidő</div></div>
+    <div class="kpi"><div class="kpi-label">Mai erőforrás</div><div class="kpi-value">30 fő</div><div class="kpi-sub">10 helyszínen &nbsp;·&nbsp; 20 fő szabad</div></div>
+  </div>
+
+  <!-- Executive Summary -->
+  <div class="sec">
+    <svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Vezetői összefoglaló
+  </div>
+  <div class="card">
+    <div class="exec-li">
+      <div class="edot" style="background:var(--red);"></div>
+      <div><strong>Sándorfalva (10771+10773) — NAPI 5M Ft kötbér:</strong> 280 MWh-s helyszínen ma csupán 4 fő + 2 gép — erősen alulméretezett. Jún. 30. megrendelői határidő elérhetetlennek tűnik. KÖF alvállalkozó döntés (Maxi 30M vs. alternatíva) és hétvégi műszak jóváhagyása <strong>ma</strong> szükséges. 20 szabad fő azonnal átirányítható a helyszínre.</div>
+    </div>
+    <div class="exec-li">
+      <div class="edot" style="background:var(--red);"></div>
+      <div><strong>Sárvár (10446) — 0% EPC, blokkolt:</strong> Schneider szakfelügyelet legkorábban aug. 20. Pünkösdi cellatelepítés meghiúsul. Generál kivitelező fogadása PV munkákra és termelői kábel azonnali indítása szükséges. Spie szerződés nincs aláírva, tervek hibásak — B-terv meghatározása sürgős.</div>
+    </div>
+    <div class="exec-li">
+      <div class="edot" style="background:var(--green);"></div>
+      <div><strong>Pozitív fejlemények:</strong> Dad (10720) hot commissioning máj. 18. — ütemterv szerint halad. Tatabánya (10621) cold comm. máj. 18. Esztergom (10570) csatlakozási pont kockázat ✅ elhárítva. Babót, Vép II., Horvátzsidány, Kalocsa sikeresen bekapcsolva.</div>
+    </div>
+    <div class="exec-li">
+      <div class="edot" style="background:var(--amber);"></div>
+      <div><strong>Anyag- és kapacitáshiány:</strong> Zimmermann tartószerkezet-szállítás késik (Környe II. PV + Tatabánya PV: 28. hét, Ács II. PV: 32. hét). PV modulok 22. hétre várhatók (Babót, Vép II., Oroszlány). Pali csapata egyszerre 3+ projekthez szükséges — kapacitáskonfliktus feloldás sürgős.</div>
+    </div>
+    <div class="exec-li">
+      <div class="edot" style="background:var(--amber);"></div>
+      <div><strong>Szervezeti teendők:</strong> PM feladatok újraosztása (Fanni/Benji/András/Ati) — Boti távozása óta András helyettes nélkül. Hulladékszállítási keretszerz. lezáratlan. GPS hibás gépek: C2, C5 Pauselli. F4 CAT 309 CR szervizen — Sándorfalva kapacitásveszteség.</div>
+    </div>
+  </div>
+
+  <!-- RAG + Deadline two-col -->
+  <div class="two-col">
+    <div>
+      <div class="sec">
+        <svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        Portfólió RAG megoszlás
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="chart-wrap">
+          <div class="chart-canvas"><canvas id="ragChart" role="img" aria-label="RAG megoszlás: 3 terv szerint, 10 kockázatos, 5 késés">3 terv szerint, 10 kockázatos, 5 késés/blokkolt.</canvas></div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-sq" style="background:var(--green);"></div><span class="legend-label">Terv szerint (P1 comm.)</span><span class="legend-val">3</span></div>
+            <div class="legend-item"><div class="legend-sq" style="background:var(--amber);"></div><span class="legend-label">Kockázatos</span><span class="legend-val">10</span></div>
+            <div class="legend-item"><div class="legend-sq" style="background:var(--red);"></div><span class="legend-label">Késés / blokkolt</span><span class="legend-val">5</span></div>
+            <div class="legend-item"><div class="legend-sq" style="background:#888;"></div><span class="legend-label">Anyagra vár / standby</span><span class="legend-val">15</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="sec">
+        <svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Kapcsolási ütemterv
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="gantt-row"><span class="gantt-name">Dad 50 MW BESS</span><div class="gantt-bar g-done">✓ 2026-03-19 — befejezett</div></div>
+        <div class="gantt-row"><span class="gantt-name">Tatabánya 1 MW</span><div class="gantt-bar g-done">✓ 2026-03-23 — befejezett</div></div>
+        <div class="gantt-row"><span class="gantt-name">Ács I. 1 MW BESS</span><div class="gantt-bar g-done">✓ 2026-04-01 — befejezett</div></div>
+        <div class="gantt-row"><span class="gantt-name">Kalocsa 1 MW</span><div class="gantt-bar g-done">✓ 2026-04-16 — befejezett</div></div>
+        <div class="gantt-row"><span class="gantt-name">Vép II. 4,5 MW</span><div class="gantt-bar g-done">✓ 2026-04-16 — befejezett</div></div>
+        <div class="gantt-row"><span class="gantt-name">Horvátzsidány</span><div class="gantt-bar g-done">✓ 2026-04-24 — befejezett</div></div>
+        <div class="gantt-row"><span class="gantt-name">Babót 5 MW</span><div class="gantt-bar g-done">✓ 2026-04-27 — befejezett</div></div>
+        <div class="gantt-row"><span class="gantt-name">Esztergom PV+BESS</span><div class="gantt-bar g-active">05-01 → 05-20 · aktív ablak</div></div>
+        <div class="gantt-row"><span class="gantt-name">Ács II. 5 MW</span><div class="gantt-bar g-active">05-01 → 05-20 · aktív ablak</div></div>
+        <div class="gantt-row"><span class="gantt-name">Komárom 5 MW</span><div class="gantt-bar g-warn">05-01 → 05-20 · bizonytalan</div></div>
+        <div class="gantt-row"><span class="gantt-name">Környe 5 MW</span><div class="gantt-bar g-active">05-01 → 05-20 · aktív ablak</div></div>
+        <div class="gantt-row"><span class="gantt-name">Oroszlány V.</span><div class="gantt-bar g-active">05-07 → folyamatos</div></div>
+        <div class="gantt-row"><span class="gantt-name">Sándorfalva ÜH</span><div class="gantt-bar g-crit">Terv: 05-27 · KÖTBÉRKOCKÁZAT!</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Table -->
+  <div class="sec">
+    <svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    Projektportfólió státusz — prioritás szerint
+  </div>
+  <div class="card">
+    <table class="proj-table">
+      <thead>
+        <tr>
+          <th style="width:32px;">P</th>
+          <th style="width:160px;">Projekt</th>
+          <th style="width:50px;">Típus</th>
+          <th style="width:90px;">EPC</th>
+          <th style="width:65px;">Bekapcs.</th>
+          <th>Következő lépés / blokkoló</th>
+          <th style="width:70px;">Határidő</th>
+          <th style="width:70px;">Felelős</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="group-hdr">
+          <td colspan="8" style="color:var(--red-t);">▶ PRIORITÁS 1 — Kritikus határidő · Azonnal top priorizálni</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p1c">1</span></td>
+          <td><div class="proj-name">10771 Sándorfalva BESS</div><div class="proj-note">200 MWh · Magas igény</div></td>
+          <td><span class="badge badge-red" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:50%;background:var(--red);"></div></div><strong>50%</strong></div></td>
+          <td style="color:var(--text3);">—</td>
+          <td style="color:var(--red-t);"><strong>KÖF döntés MA · hétvégi műszak · 20 fő odairányítása · termelői kábel nincs</strong></td>
+          <td><span class="badge badge-red">06-30 (!)</span></td>
+          <td>Nick Sz.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p1c">1</span></td>
+          <td><div class="proj-name">10773 Sándorfalva BESS</div><div class="proj-note">80 MWh · Magas igény</div></td>
+          <td><span class="badge badge-red" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:50%;background:var(--red);"></div></div><strong>50%</strong></div></td>
+          <td style="color:var(--text3);">—</td>
+          <td style="color:var(--red-t);">Párhuzamos projekt · azonos helyszín · azonos kötbérkockázat</td>
+          <td><span class="badge badge-red">06-30 (!)</span></td>
+          <td>Nick Sz.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p1c">1</span></td>
+          <td><div class="proj-name">10446 Sárvár PV</div><div class="proj-note">2,7 MW PPA · Közepes igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:0%;background:var(--red);"></div></div><strong>0%</strong></div></td>
+          <td style="color:var(--text3);">*</td>
+          <td style="color:var(--red-t);">Generál kiv. fogadás · termelői kábel azonnali · Schneider B-terv · Spie szerz.</td>
+          <td><span class="badge badge-amber">aug. 20.</span></td>
+          <td>Braun A.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p1c">1</span></td>
+          <td><div class="proj-name">10720 Dad BESS</div><div class="proj-note">100 MWh · Közepes igény</div></td>
+          <td><span class="badge badge-red" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:100%;background:var(--green);"></div></div><strong>100%</strong></div></td>
+          <td style="color:var(--green);">03-20 ✓</td>
+          <td>Hot comm. <strong>05-18</strong> · PCS szivárgás jogi lépések · CATL rack csere · kerítés pótlás</td>
+          <td><span class="badge badge-amber">05-18</span></td>
+          <td>Patos B.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p1c">1</span></td>
+          <td><div class="proj-name">10500 Nyírbátor I. PV</div><div class="proj-note">7 MW · Közepes igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:97%;background:var(--green);"></div></div><strong>97%</strong></div></td>
+          <td style="color:var(--text3);">?</td>
+          <td>Commissioning → üzemeltetés · matricák megrendelése · API panelezés e héten</td>
+          <td style="color:var(--text3);">—</td>
+          <td>Dombi F.</td>
+        </tr>
+
+        <tr class="group-hdr">
+          <td colspan="8" style="color:var(--amber-t);">▶ PRIORITÁS 2 — BESS üzembe helyezők · Villanyszerelő kapacitás szükséges</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p2c">2</span></td>
+          <td><div class="proj-name">10551 Vép II. BESS</div><div class="proj-note">18 MWh · Alacsony igény</div></td>
+          <td><span class="badge badge-amber" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:94%;background:var(--amber);"></div></div><strong>94%</strong></div></td>
+          <td style="color:var(--green);">04-16 ✓</td>
+          <td>Villanyszerelő kapacitás · DC kábel + Zimmermann anyaghiány · cold comm. máj. vége</td>
+          <td><span class="badge badge-amber">05 vége</span></td>
+          <td>Braun A.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p2c">2</span></td>
+          <td><div class="proj-name">10621 Tatabánya BESS</div><div class="proj-note">4 MWh · Alacsony igény</div></td>
+          <td><span class="badge badge-amber" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:63%;background:var(--amber);"></div></div><strong>63%</strong></div></td>
+          <td style="color:var(--green);">03-23 ✓</td>
+          <td>Cold comm. <strong>05-18</strong> · villanyszerelő · tartószerkezet jún.</td>
+          <td><span class="badge badge-amber">05-18</span></td>
+          <td>Dombi F.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p2c">2</span></td>
+          <td><div class="proj-name">10611 Ács I. BESS</div><div class="proj-note">4 MWh · Alacsony igény</div></td>
+          <td><span class="badge badge-amber" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:89%;background:var(--amber);"></div></div><strong>89%</strong></div></td>
+          <td style="color:var(--green);">04-01 ✓</td>
+          <td>Segédüzemi szekrény 05-18. szállítás · villanyszerelő · pull-out teszt</td>
+          <td style="color:var(--text3);">—</td>
+          <td>Dombi F.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p2c">2</span></td>
+          <td><div class="proj-name">10511 Oroszlány V. BESS</div><div class="proj-note">40 MWh · Közepes igény</div></td>
+          <td><span class="badge badge-amber" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:75%;background:var(--amber);"></div></div><strong>75%</strong></div></td>
+          <td style="color:var(--green);">HCS ✓</td>
+          <td>RPC szerz. + teljesítési igazolás · MFB hitel ≥500k EUR · 60% lehívási limit</td>
+          <td><span class="badge badge-blue">06-12</span></td>
+          <td>Dombi F.</td>
+        </tr>
+
+        <tr class="group-hdr">
+          <td colspan="8" style="color:var(--blue-t);">▶ PRIORITÁS 3 — PV újraindítás alvállalkozóval · BESS-ek P2 után</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p3c">3</span></td>
+          <td><div class="proj-name">10550 Vép II. PV</div><div class="proj-note">4,5 MW · Közepes igény</div></td>
+          <td><span class="badge badge-blue" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:64%;background:var(--blue);"></div></div><strong>64%</strong></div></td>
+          <td style="color:var(--green);">04-16 ✓</td>
+          <td>Napelem 22. hétre · alvállalkozó szervezés · Zimmermann anyaghiány</td>
+          <td style="color:var(--text3);">—</td>
+          <td>Braun A.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p3c">3</span></td>
+          <td><div class="proj-name">10640 Babót PV</div><div class="proj-note">5 MW · Közepes igény</div></td>
+          <td><span class="badge badge-blue" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:90%;background:var(--blue);"></div></div><strong>90%</strong></div></td>
+          <td style="color:var(--green);">04-27 ✓</td>
+          <td>Maradék modul 22. hétre · fedezetkezelő mérföldkő feloldás</td>
+          <td style="color:var(--text3);">—</td>
+          <td>Bári A.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p3c">3</span></td>
+          <td><div class="proj-name">10510 Oroszlány V. PV</div><div class="proj-note">5 MW · Közepes igény</div></td>
+          <td><span class="badge badge-blue" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:63%;background:var(--blue);"></div></div><strong>63%</strong></div></td>
+          <td style="color:var(--green);">HCS ✓</td>
+          <td>Sérült kábel csere · napelem 22. hétre · újraindult 05-11.</td>
+          <td><span class="badge badge-blue">06-12</span></td>
+          <td>Dombi F.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p3c">3</span></td>
+          <td><div class="proj-name">10641 Babót BESS</div><div class="proj-note">20 MWh · Alacsony igény</div></td>
+          <td><span class="badge badge-blue" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:83%;background:var(--blue);"></div></div><strong>83%</strong></div></td>
+          <td style="color:var(--green);">04-27 ✓</td>
+          <td>Villanyszerelő · kamera · EMS/IRT · P2 projektek után</td>
+          <td style="color:var(--text3);">—</td>
+          <td>Bári A.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p3c">3</span></td>
+          <td><div class="proj-name">10631 Horvátzsidány BESS</div><div class="proj-note">4 MWh · Alacsony igény</div></td>
+          <td><span class="badge badge-blue" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:80%;background:var(--blue);"></div></div><strong>80%</strong></div></td>
+          <td style="color:var(--green);">04-27 ✓</td>
+          <td>Kamera + EMS · hulladék elszállítás · cold comm. indítható</td>
+          <td style="color:var(--text3);">—</td>
+          <td>Braun A.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p3c">3</span></td>
+          <td><div class="proj-name">10570 Esztergom PV</div><div class="proj-note">13,7 MW · Alacsony igény</div></td>
+          <td><span class="badge badge-blue" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:100%;background:var(--green);"></div></div><strong>100%</strong></div></td>
+          <td style="color:var(--green);">* ✓</td>
+          <td>Generál kiv. végzi · IRT tápellátás · 600m kábelpótlás · ÜH ablak 05-20-ig</td>
+          <td><span class="badge badge-green">05-20</span></td>
+          <td>Szabó B.</td>
+        </tr>
+
+        <tr class="group-hdr">
+          <td colspan="8" style="color:var(--gray-t);">▶ PRIORITÁS 4 — BESS-ek P3 után · PV ha van kapacitás, ellenkező esetben külsős</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p4c">4</span></td>
+          <td><div class="proj-name">10571 Esztergom BESS</div><div class="proj-note">5 MWh · Alacsony igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:98%;background:#888;"></div></div><strong>98%</strong></div></td>
+          <td style="color:var(--green);">* ✓</td>
+          <td>Generál kiv. · IRT tápellátás · ÜH 05-20-ig</td>
+          <td><span class="badge badge-amber">05-20</span></td>
+          <td>Szabó B.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p4c">4</span></td>
+          <td><div class="proj-name">10561 Környe II. BESS</div><div class="proj-note">20 MWh · Alacsony igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:80%;background:#888;"></div></div><strong>80%</strong></div></td>
+          <td style="color:var(--green);">HCS ✓</td>
+          <td>Villanyszerelő · EMS/IRT · P3 projektek után</td>
+          <td style="color:var(--text3);">—</td>
+          <td>Bári A.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p4c">4</span></td>
+          <td><div class="proj-name">10521 Komárom BESS</div><div class="proj-note">20 MWh · Alacsony igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:81%;background:#888;"></div></div><strong>81%</strong></div></td>
+          <td style="color:var(--green);">HCS ✓</td>
+          <td>VESZ bekötés · Pali csapat kapacitás · olajfogó · ÜH 05-20-ig</td>
+          <td><span class="badge badge-amber">05-20</span></td>
+          <td>Dombi F.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p4c">4</span></td>
+          <td><div class="proj-name">10540 Ács II. BESS</div><div class="proj-note">20 MWh · Alacsony igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">BESS</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:83%;background:#888;"></div></div><strong>83%</strong></div></td>
+          <td style="color:var(--green);">* ✓</td>
+          <td>DC + optika bekötés · NPE → Energy Factory csere</td>
+          <td style="color:var(--text3);">—</td>
+          <td>Nick Sz.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p4c">4</span></td>
+          <td><div class="proj-name">10630 Horvátzsidány PV</div><div class="proj-note">1 MW · Alacsony igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:80%;background:#888;"></div></div><strong>80%</strong></div></td>
+          <td style="color:var(--green);">04-27 ✓</td>
+          <td>P3 BESS projektek után · hulladék elszállítás szükséges</td>
+          <td style="color:var(--text3);">—</td>
+          <td>Braun A.</td>
+        </tr>
+
+        <tr class="group-hdr">
+          <td colspan="8" style="color:var(--gray-t);">▶ PRIORITÁS 5 — Anyagra várunk · Prioritás az anyag érkezésétől</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p5c">5</span></td>
+          <td><div class="proj-name">10610 Ács I. PV</div><div class="proj-note">1 MW · Közepes igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:79%;background:#aaa;"></div></div><strong>79%</strong></div></td>
+          <td style="color:var(--green);">04-01 ✓</td>
+          <td>Statikai számítás bevárva · pull-out teszt cölöpökön</td>
+          <td style="color:var(--text3);">—</td>
+          <td>Dombi F.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p5c">5</span></td>
+          <td><div class="proj-name">10620 Tatabánya PV</div><div class="proj-note">1 MW · Közepes igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:51%;background:#aaa;"></div></div><strong>51%</strong></div></td>
+          <td style="color:var(--green);">03-23 ✓</td>
+          <td>Zimmermann tartószerkezet → 28. hét (júl. közepe)</td>
+          <td><span class="badge badge-gray">28. hét</span></td>
+          <td>Dombi F.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p5c">5</span></td>
+          <td><div class="proj-name">10560 Környe II. PV</div><div class="proj-note">5 MW · Közepes igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:51%;background:#aaa;"></div></div><strong>51%</strong></div></td>
+          <td style="color:var(--green);">HCS ✓</td>
+          <td>Zimmermann tartószerkezet → 28. hét</td>
+          <td><span class="badge badge-gray">28. hét</span></td>
+          <td>Bári A.</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p5c">5</span></td>
+          <td><div class="proj-name">10540 Ács II. PV</div><div class="proj-note">5 MW · Alacsony igény</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:43%;background:#aaa;"></div></div><strong>43%</strong></div></td>
+          <td style="color:var(--green);">* ✓</td>
+          <td>Zimmermann tartószerkezet → 32. hét · esetleg kiadható külsősnek</td>
+          <td><span class="badge badge-gray">32. hét</span></td>
+          <td>Nick Sz.</td>
+        </tr>
+
+        <tr class="group-hdr">
+          <td colspan="8" style="color:var(--gray-t);">▶ PRIORITÁS 6 — Üzembe helyezve / nem indult / szabad kapacitásra vár</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p6c">6</span></td>
+          <td><div class="proj-name">10520 Komárom PV</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:95%;background:#aaa;"></div></div><strong>95%</strong></div></td>
+          <td style="color:var(--green);">HCS ✓</td>
+          <td colspan="3" style="color:var(--text3);">Szabad kapacitás esetén · nem akadályoz más projektet</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p6c">6</span></td>
+          <td><div class="proj-name">10590 Komló I. PV</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:96%;background:#aaa;"></div></div><strong>96%</strong></div></td>
+          <td style="color:var(--text3);">?</td>
+          <td colspan="3" style="color:var(--text3);">Tracker vezérlés hiányzik · Zimmermann kifizetés szükséges</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p6c">6</span></td>
+          <td><div class="proj-name">10810 Baja PV</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:100%;background:var(--green);"></div></div><strong>100%</strong></div></td>
+          <td style="color:var(--green);">✓ Kész</td>
+          <td colspan="3" style="color:var(--text3);">Ideiglenes csatlakozás bontandó</td>
+        </tr>
+        <tr>
+          <td><span class="prio-chip p6c">6</span></td>
+          <td><div class="proj-name">Becske / Békéscsaba / VÉP III–IV / egyéb</div></td>
+          <td><span class="badge badge-gray" style="font-size:10px;">PV</span></td>
+          <td><div class="pb-wrap"><div class="pb"><div class="pf" style="width:20%;background:#aaa;"></div></div><strong>0–41%</strong></div></td>
+          <td style="color:var(--text3);">—</td>
+          <td colspan="3" style="color:var(--text3);">Zimmermann díjbekérő nem fizetve · kivitelezés szünetel · szabad kapacitás esetén</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Deadlines + Resources two-col -->
+  <div class="two-col">
+    <div>
+      <div class="sec">
+        <svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Közelgő határidők
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="dl-row"><span class="dl-date" style="color:var(--green);font-weight:700;">✅ 05-12 MA</span><span class="dl-text">Esztergom — csatlakozási pont dokumentáció</span><span class="badge badge-green">MEGOLDVA</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--red);font-weight:700;">05-12 MA</span><span class="dl-text">Sándorfalva — KÖF döntés · hétvégi műszak</span><span class="badge badge-red">AZONNALI</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--text2);">05-12</span><span class="dl-text">Dad — 30m kerítés befejezése · Meteo Control bejárás</span><span class="badge badge-blue">Patos B.</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--text2);">05-14</span><span class="dl-text">Dad — villamos + DC kábelezés + internet bekötés</span><span class="badge badge-blue">Patos B.</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--text2);">05-15</span><span class="dl-text">Dad — cold commissioning befejezése</span><span class="badge badge-blue">Patos B.</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--amber);font-weight:700;">05-18</span><span class="dl-text"><strong>Dad hot comm. + Tatabánya cold comm.</strong> — kettős kritikus nap</span><span class="badge badge-amber">Kritikus</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--amber);">05-20</span><span class="dl-text">ÜH ablak zárul — Esztergom · Ács · Komárom · Környe</span><span class="badge badge-amber">ÜH limit</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--text2);">05 vége</span><span class="dl-text">Vép II. cold commissioning befejezés (cél)</span><span class="badge badge-blue">Braun A.</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--amber);font-weight:700;">05-28</span><span class="dl-text">Sándorfalva — alállomás üzbe h. céldátum</span><span class="badge badge-amber">Nick Sz.</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--text2);">06-12</span><span class="dl-text">Oroszlány V. — befejezési célhatáridő</span><span class="badge badge-blue">Dombi F.</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--text2);">28. hét</span><span class="dl-text">Zimmermann szállítás — Környe II. PV + Tatabánya PV</span><span class="badge badge-gray">Anyag ETA</span></div>
+        <div class="dl-row"><span class="dl-date" style="color:var(--red);font-weight:700;">06-30 (!)</span><span class="dl-text"><strong>Sándorfalva megrendelői határidő</strong> — napi 5M Ft kötbér</span><span class="badge badge-red">KÖTBÉR</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec">
+        <svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Top akciólista — 8 legfontosabb feladat
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="ac-row">
+          <div class="ac-num p1c">1</div>
+          <div class="ac-text"><strong>Sándorfalva KÖF döntés</strong> — Maxi 30M vs. SPIE/önkivitelezés · hétvégi műszak jóváhagyása · 20 szabad fő azonnali átirányítása</div>
+          <div class="ac-meta"><span class="badge badge-red">MA</span><span style="font-size:11px;color:var(--text2);">Nick Sz.</span></div>
+        </div>
+        <div class="ac-row">
+          <div class="ac-num p1c">2</div>
+          <div class="ac-text"><strong>Sárvár: Generál kivitelező + termelői kábel</strong> — Schneider B-terv · Spie szerz. aláírás · Energy Factory 05-18.</div>
+          <div class="ac-meta"><span class="badge badge-red">e héten</span><span style="font-size:11px;color:var(--text2);">Braun A.</span></div>
+        </div>
+        <div class="ac-row">
+          <div class="ac-num p2c">3</div>
+          <div class="ac-text"><strong>Dad hot commissioning 05-18.</strong> — PCS szivárgás jogi lépések · CATL biztosítói bejelentés · TKS04 Sinengg nyilatkozat</div>
+          <div class="ac-meta"><span class="badge badge-amber">05-18</span><span style="font-size:11px;color:var(--text2);">Patos B.</span></div>
+        </div>
+        <div class="ac-row">
+          <div class="ac-num p2c">4</div>
+          <div class="ac-text"><strong>PM feladatok újraosztása</strong> — Fanni/Benji/András/Ati körök véglegesítése · Boti helyettes kijelölése</div>
+          <div class="ac-meta"><span class="badge badge-amber">e héten</span><span style="font-size:11px;color:var(--text2);">Vezető</span></div>
+        </div>
+        <div class="ac-row">
+          <div class="ac-num p2c">5</div>
+          <div class="ac-text"><strong>P3 PV projektek 22. héti felkészülés</strong> — Zimmermann + DC kábel (Vép, Babót, Oroszlány) · alvállalkozó szervezés</div>
+          <div class="ac-meta"><span class="badge badge-amber">e héten</span><span style="font-size:11px;color:var(--text2);">Bári/Braun</span></div>
+        </div>
+        <div class="ac-row">
+          <div class="ac-num p3c">6</div>
+          <div class="ac-text"><strong>Oroszlány V. RPC szerz. + MFB hitelkeret (≥500k EUR)</strong> · 60%-os limit jogi vizsgálat · sérült kábel csere</div>
+          <div class="ac-meta"><span class="badge badge-blue">2 héten</span><span style="font-size:11px;color:var(--text2);">Dombi F.</span></div>
+        </div>
+        <div class="ac-row">
+          <div class="ac-num p3c">7</div>
+          <div class="ac-text"><strong>P2 BESS-ekhez villanyszerelő kapacitás lekötése</strong> — Tatabánya 05-18 · Vép II. 05 vége · Ács I. · Oroszlány V.</div>
+          <div class="ac-meta"><span class="badge badge-blue">e héten</span><span style="font-size:11px;color:var(--text2);">PM csapat</span></div>
+        </div>
+        <div class="ac-row">
+          <div class="ac-num p4c">8</div>
+          <div class="ac-text"><strong>GPS hibás gépek + szerviz</strong> — C2 Pauselli 900n2 · C5 Pauselli 1000 · F4 CAT 309 pótlás Sándorfalvára · hulladékszállítási keretszerz.</div>
+          <div class="ac-meta"><span class="badge badge-gray">folyamatos</span><span style="font-size:11px;color:var(--text2);">Műszaki</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resources -->
+  <div class="sec">
+    <svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+    Erőforrás-beosztás — 2026. május 12. (Erőforrás kezelő · Ütemterv · AJD oszlop)
+  </div>
+  <div class="three-col">
+    <div class="res-card">
+      <div class="res-hdr"><span class="res-name">Dad (10720) · P1</span><div style="display:flex;gap:4px;"><span class="badge badge-green" style="font-size:10px;">5 fő</span><span class="badge badge-blue" style="font-size:10px;">5+ gép</span></div></div>
+      <div class="res-row"><span class="dot dg"></span>Bak Gyula · Spiridon Cristian</div>
+      <div class="res-row"><span class="dot dg"></span>Vadlövő Péter · Hosszú Tamás · Varga Róbert</div>
+      <div class="res-mach"><span class="dot dg"></span>R3 Bobcat TL 34.65 · R5 T590 · F7 CAT 303</div>
+      <div class="res-mach"><span class="dot dg"></span>Bobcat T40180 · K8 Köbös tartály</div>
+      <div class="res-mach"><span class="dot dw"></span>F8 CAT 304 CR → szerviz</div>
+    </div>
+    <div class="res-card">
+      <div class="warn-bar">⚠ Alulméretezett — 280 MWh-s helyszín!</div>
+      <div class="res-hdr"><span class="res-name" style="color:var(--red-t);">Sándorfalva (10771+73) · P1</span><div style="display:flex;gap:4px;"><span class="badge badge-red" style="font-size:10px;">4 fő</span><span class="badge badge-blue" style="font-size:10px;">2 gép</span></div></div>
+      <div class="res-row"><span class="dot dg"></span>Sinka Dániel · Sinka Tibor</div>
+      <div class="res-row"><span class="dot dg"></span>Pethő István · Krajnyák Martin</div>
+      <div class="res-mach"><span class="dot dg"></span>F3 Caterpillar 302 CR · K1 Köbös tartály</div>
+      <div class="res-mach"><span class="dot dr"></span>F4 CAT 309 CR → szerviz (leállt)</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--green);font-weight:600;">→ 20 szabad fő azonnal ide irányítható</div>
+    </div>
+    <div class="res-card">
+      <div class="res-hdr"><span class="res-name">Vép II. (10550/51) · P2+P3</span><div style="display:flex;gap:4px;"><span class="badge badge-green" style="font-size:10px;">6 fő</span><span class="badge badge-blue" style="font-size:10px;">5 gép</span></div></div>
+      <div class="res-row"><span class="dot dg"></span>Babis Gábor · Kertész Tamás · Gyergyádes B.</div>
+      <div class="res-row"><span class="dot dg"></span>Tóth József · Óvári Máté · Petrovics Barnabás</div>
+      <div class="res-mach"><span class="dot dw"></span>C2 Pauselli 900n2 T5 — ⚠ GPS hiba</div>
+      <div class="res-mach"><span class="dot dg"></span>L2 Lézer · R6 Bobcat T66 · F6 CAT 302 NEW</div>
+    </div>
+    <div class="res-card">
+      <div class="res-hdr"><span class="res-name">Oroszlány V. (10510/11) · P2+P3</span><div style="display:flex;gap:4px;"><span class="badge badge-green" style="font-size:10px;">4 fő</span><span class="badge badge-blue" style="font-size:10px;">6 gép</span></div></div>
+      <div class="res-row"><span class="dot dg"></span>Bárándi Imre · Fekete Róbert</div>
+      <div class="res-row"><span class="dot dg"></span>Horváth László · Masir Emil Nándor</div>
+      <div class="res-mach"><span class="dot dg"></span>C1 Pauselli · R2 Bobcat · D Dobforgató</div>
+      <div class="res-mach"><span class="dot dg"></span>Bobcat TL30.70 · CAT 305E2 · AGT CRBH130</div>
+    </div>
+    <div class="res-card">
+      <div class="res-hdr"><span class="res-name">Tatabánya (10620/21) · P2+P5</span><div style="display:flex;gap:4px;"><span class="badge badge-green" style="font-size:10px;">3 fő</span><span class="badge badge-blue" style="font-size:10px;">15+ gép</span></div></div>
+      <div class="res-row"><span class="dot dg"></span>Kristóf Szebasztián · Bósa Krisztián · Hunyadi K.</div>
+      <div class="res-mach"><span class="dot dg"></span>C3 Pauselli · R1 Bobcat · F5 JCB 3CX</div>
+      <div class="res-mach"><span class="dot dw"></span>C5 Pauselli ⚠ GPS hiba · R4+R8 → szerviz</div>
+      <div class="res-mach"><span class="dot dg"></span>IT · CT · PF · GF · K · Sz · TF · TF2 · TT</div>
+    </div>
+    <div class="res-card">
+      <div class="res-hdr"><span class="res-name">Nyírbátor (10500) · P1</span><div style="display:flex;gap:4px;"><span class="badge badge-green" style="font-size:10px;">4 fő</span><span class="badge badge-blue" style="font-size:10px;">2 gép</span></div></div>
+      <div class="res-row"><span class="dot dg"></span>Laska János Jr. · Laska János</div>
+      <div class="res-row"><span class="dot dg"></span>Lukácsik Ádám · Demkó Árpád</div>
+      <div class="res-mach"><span class="dot dg"></span>F2 Caterpillar 432 (2021) · K6 Köbös tartály</div>
+    </div>
+    <div class="res-card">
+      <div class="warn-bar-a">Blokkolt — EPC 0% · Generál kiv. szükséges</div>
+      <div class="res-hdr"><span class="res-name">Sárvár (10446) · P1</span><div><span class="badge badge-amber" style="font-size:10px;">1 fő</span></div></div>
+      <div class="res-row"><span class="dot dg"></span>Kurtos Béla</div>
+      <div class="res-mach"><span class="dot dg"></span>C4 Gayk · F1 CAT 432 F2 · K4 Köbös tartály</div>
+    </div>
+    <div class="res-card">
+      <div class="res-hdr"><span class="res-name">Babót · Ács · Esztergom</span><div><span class="badge badge-gray" style="font-size:10px;">0 fő</span></div></div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Személyzet ma nincs beosztva</div>
+      <div class="res-mach"><span class="dot dg"></span>Babót: K9 tartály · Atlas Weycor AR75</div>
+      <div class="res-mach"><span class="dot dg"></span>Ács: AGT PCL90 · Husqvarna · Bobcat E85</div>
+      <div class="res-mach"><span class="dot dg"></span>Esztergom: AGT 16503 áramfejlesztő</div>
+    </div>
+    <div class="res-card">
+      <div class="res-hdr"><span class="res-name" style="color:var(--green-t);">Szabad kapacitás → Sándorfalva</span><div><span class="badge badge-amber" style="font-size:10px;">20 fő</span></div></div>
+      <div style="font-size:11px;color:var(--text2);">Szabadság (4): Laska D. · Zsivkovics Á. · Papp L. · Varga D.P.</div>
+      <div style="font-size:11px;color:var(--red);margin-top:3px;">Táppénz (2): Lukács Á. · Einbeck T.</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:3px;">Nincs beosztás (14+): Marofka M. · Ferling R. · Jámbor L. · Mikula K.+R. · Laskai Zs.+J. + 9 fő</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="ftr">
+    <div>
+      <span class="ftr-logo">Electron Holding Zrt.</span>
+      <span style="margin-left:12px;">Belső használatra · Státusz xlsx 2026-05-11 · Erőforrás kezelő AJD/939. oszlop · Vezetői státusz xlsx · Kapcsolási ütemterv</span>
+    </div>
+    <div>Következő frissítés: 2026-05-18 &nbsp;·&nbsp; Portfólió átlag EPC: 66% &nbsp;·&nbsp; 33 aktív projekt</div>
+  </div>
+
+</div>
+
+<script>
+new Chart(document.getElementById('ragChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Terv szerint', 'Kockázatos', 'Késés/blokkolt', 'Anyagra vár'],
+    datasets: [{
+      data: [3, 10, 5, 15],
+      backgroundColor: ['#639922', '#BA7517', '#E24B4A', '#888780'],
+      borderWidth: 2,
+      borderColor: '#ffffff',
+      hoverOffset: 4
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: c => c.label + ': ' + c.raw + ' projekt' } }
+    }
+  }
+});
+</script>
+</body>
+</html>
